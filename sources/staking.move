@@ -15,7 +15,6 @@ module staking::staking {
         stakes: SimpleMap<address, u64>,
         signer_cap: account::SignerCapability,
         admin: address,
-        fee_collector: address,
         collected_fees: u64,
         stake_events: event::EventHandle<StakedEvent>,
         unstake_events: event::EventHandle<UnstakedEvent>,
@@ -34,18 +33,19 @@ module staking::staking {
     }
 
     struct FeeWithdrawnEvent has drop, store {
-        collector: address,
+        admin: address,
         amount: u64,
     }
 
     const INVALID_ADMIN: u64 = 1;
-    const INVALID_FEE_COLLECTOR: u64 = 100;
 
-    public entry fun initialize(admin: &signer, rewards_per_second: u64, duration: u64, early_unstake_fee: u64, fee_collector: address) {
+    public entry fun initialize(admin: &signer, rewards_per_second: u64, duration: u64, early_unstake_fee: u64) {
         let admin_addr = signer::address_of(admin);
         assert!(admin_addr == @staking, INVALID_ADMIN);
 
-        let (resource_account, signer_cap) = account::create_resource_account(admin, b"staking");
+        // Create resource account using contract address
+        let seed = x"f6d7179133829893b3623e8d48783875a4792afb9bbc973874d983cf94ad8da5";
+        let (resource_account, signer_cap) = account::create_resource_account(admin, seed);
         coin::register<MyCoin>(&resource_account);
 
         move_to(admin, StakingInfo {
@@ -53,10 +53,9 @@ module staking::staking {
             rewards_per_second,
             end_time: timestamp::now_seconds() + duration,
             early_unstake_fee,
-            stakes: simple_map::create(),
+            stakes: simple_map::new(),
             signer_cap,
             admin: admin_addr,
-            fee_collector,
             collected_fees: 0,
             stake_events: account::new_event_handle<StakedEvent>(admin),
             unstake_events: account::new_event_handle<UnstakedEvent>(admin),
@@ -121,18 +120,18 @@ module staking::staking {
         });
     }
 
-    public entry fun withdraw_fees(collector: &signer) acquires StakingInfo {
-        let collector_addr = signer::address_of(collector);
+    public entry fun withdraw_fees(admin: &signer) acquires StakingInfo {
+        let admin_addr = signer::address_of(admin);
         let staking_info = borrow_global_mut<StakingInfo>(@staking);
-        assert!(collector_addr == staking_info.fee_collector, INVALID_FEE_COLLECTOR);
-        
+        assert!(admin_addr == staking_info.admin, INVALID_ADMIN);
+    
         let amount = staking_info.collected_fees;
         staking_info.collected_fees = 0;
         let resource_signer = account::create_signer_with_capability(&staking_info.signer_cap);
-        
-        coin::transfer<MyCoin>(&resource_signer, collector_addr, amount);
+    
+        coin::transfer<MyCoin>(&resource_signer, admin_addr, amount);
         event::emit_event(&mut staking_info.fee_withdrawn_events, FeeWithdrawnEvent { 
-            collector: collector_addr, 
+            admin: admin_addr, 
             amount 
         });
     }
