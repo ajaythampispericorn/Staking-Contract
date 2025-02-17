@@ -59,5 +59,6 @@ aptos move test
 
 2. To find test coverage  
 
-```aptos move test --coverage  
+```  
+aptos move test --coverage  
 ```
