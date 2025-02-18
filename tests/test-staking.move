@@ -227,4 +227,58 @@ module staking::staking_tests {
     
         staking::unstake(&user);
     }
+
+     #[test]
+    #[expected_failure(abort_code = 1)]
+    fun test_initialize_invalid_admin() {
+        // Create an account that is not the staking admin
+        let invalid_admin = account::create_account_for_test(@0xCAFE);
+        
+        // Try to initialize with invalid admin - should fail
+        mycoin::initialize(&invalid_admin);
+    }
+
+    #[test]
+    fun test_double_registration() {
+        let admin = account::create_account_for_test(@staking);
+        let user = account::create_account_for_test(@0xB0B);
+        
+        // Initialize MyCoin
+        mycoin::initialize(&admin);
+        
+        // First registration
+        mycoin::register(&user);
+        
+        // Second registration - should not cause issues
+        mycoin::register(&user);
+        
+        // Verify the account is still properly registered
+        assert!(coin::is_account_registered<MyCoin>(signer::address_of(&user)), 1);
+    }
+
+    #[test]
+    fun test_initial_supply() {
+        let admin = account::create_account_for_test(@staking);
+        
+        // Initialize MyCoin
+        mycoin::initialize(&admin);
+        
+        // Verify initial supply is correct
+        assert!(coin::balance<MyCoin>(signer::address_of(&admin)) == 1_000_000, 2);
+    }
+
+    #[test]
+    fun test_register_zero_balance() {
+        let admin = account::create_account_for_test(@staking);
+        let user = account::create_account_for_test(@0xB0B);
+        
+        // Initialize MyCoin
+        mycoin::initialize(&admin);
+        
+        // Register user
+        mycoin::register(&user);
+        
+        // Verify initial balance is zero
+        assert!(coin::balance<MyCoin>(signer::address_of(&user)) == 0, 3);
+    }
 }
