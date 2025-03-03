@@ -28,11 +28,11 @@ module staking::mycoin {
 
         // Register admin account to receive initial coins
         coin::register<MyCoin>(admin);
-        
+
         // Mint initial supply
-        let coins = coin::mint<MyCoin>(1_000_000, &mint_cap);
+        let coins = coin::mint<MyCoin>(1_000_000_000_000, &mint_cap);
         coin::deposit(signer::address_of(admin), coins);
-        
+
         // Store capabilities
         move_to(admin, Capabilities {
             burn_cap,
@@ -43,5 +43,27 @@ module staking::mycoin {
 
     public fun register(account: &signer) {
         coin::register<MyCoin>(account);
+    }
+
+    public entry fun mint_coins(admin: &signer, amount: u64) acquires Capabilities {
+        let admin_addr = signer::address_of(admin);
+        assert!(admin_addr == @staking, 1);
+
+        let capabilities = borrow_global<Capabilities>(@staking);
+        let coins = coin::mint<MyCoin>(amount, &capabilities.mint_cap);
+        coin::deposit(admin_addr, coins);
+    }
+
+    public entry fun transfer(from: &signer, to: address, amount: u64) {
+        coin::transfer<MyCoin>(from, to, amount);
+    }
+
+    #[view]
+    public fun balance(owner: address): u64 {
+        if (coin::is_account_registered<MyCoin>(owner)) {
+            coin::balance<MyCoin>(owner)
+        } else {
+            0
+        }
     }
 }

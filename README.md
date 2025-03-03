@@ -43,6 +43,26 @@ The staking module implements the staking mechanism with:
 2. Unstaked Event : When tokens are unstaked  
 3. FeeWithdrawnEvent : When admin withdraws early unstaking fee  
 
+### Aptos CLI Installation  
+
+Go to Aptos [CLI release page](https://github.com/aptos-labs/aptos-core/releases?q=cli&expanded=true)  
+Follow the instructions given to install Aptos CLI  
+
+To verify installation  
+
+```  
+aptos --version  
+```  
+
+## Setup CLI Configuration  
+
+Run the command  
+```
+aptos init  
+```  
+
+To use default settings, you can provide no input and just press “Enter”.  
+
 ## To Compile  
 
 ```  
